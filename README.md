@@ -22,9 +22,9 @@ Ce projet a pour objectif de constituer une base de données temporelle robuste 
 ## ✨ Fonctionnalités
 
 - 🔐 **Authentification sécurisée OAuth2 :** Connexion aux API RTE via Client Credentials.
-- 📊 **Ingestion des prévisions énergétiques :** Récupération des prévisions de production par filière (Nucléaire, Éolien, Solaire, Hydraulique, Thermique, etc.).
-- 🗄️ **Stockage PostgreSQL optimisé :** Séries temporelles horodatées (`TIMESTAMPTZ`) et gestion des conflits d'insertion (upsert).
-- 🌦️ **Intégration météo (en cours) :** Table prête pour la corrélation avec température et vitesse du vent.
+- 📊 **Ingestion des prévisions énergétiques :** Récupération des prévisions de production par filière (Solaire, Éolien terrestre/en mer, etc.) et par horizon (`CURRENT`, `D-1`, `D-2`, `D-3`).
+- 🌦️ **Intégration météo (Open-Meteo) :** Collecte horaire de la température à 2m (°C) et de la vitesse du vent à 10m (km/h) pour la France.
+- 🗄️ **Stockage PostgreSQL optimisé :** Séries temporelles horodatées (`TIMESTAMPTZ`), clés techniques `id` et gestion des conflits d'insertion (upsert).
 - 🚀 **Outillage moderne :** Gestion des dépendances ultra-rapide avec [`uv`](https://docs.astral.sh/uv/) et Python 3.13+.
 
 ---
@@ -42,9 +42,10 @@ rte-energy/
     ├── uv.lock           # Verrouillage exact des versions
     └── src/
         └── rte_energy/
-            ├── __init__.py       # Point d'entrée du package
-            ├── init_db.py        # Création et migration des tables PostgreSQL
-            └── ingest_rte.py     # Récupération API RTE et insertion en base
+            ├── __init__.py          # Point d'entrée du package
+            ├── init_db.py           # Création et migration des tables PostgreSQL
+            ├── ingest_rte.py        # Récupération API RTE et insertion en base
+            └── ingest_weather.py    # Récupération API Open-Meteo et insertion en base
 ```
 
 ---
@@ -63,8 +64,8 @@ rte-energy/
 ### 1. Cloner le projet
 
 ```bash
-git clone https://github.com/votre-compte/rte-energy.git
-cd rte-energy
+git clone https://github.com/clairedata/rte_energie.git
+cd rte_energie
 ```
 
 ### 2. Installer les dépendances
@@ -101,6 +102,10 @@ DB_PORT=5432
 DB_NAME=energy_db
 DB_USER=postgres
 DB_PASSWORD=votre_mot_de_passe
+
+# Coordonnées géographiques optionnelles pour la météo (Centre de la France par défaut)
+WEATHER_LAT=46.603354
+WEATHER_LON=1.888334
 ```
 
 > ⚠️ **Important :** Ne commitez **jamais** le fichier `.env` sur Git. Il contient des secrets et identifiants sensibles.
@@ -120,18 +125,27 @@ uv run python src/rte_energy/init_db.py
 
 ### 2. Lancer l'ingestion des données RTE
 
-Pour récupérer les données depuis l'API RTE et les insérer dans PostgreSQL :
+Pour récupérer les prévisions de production électrique depuis l'API RTE et les insérer dans PostgreSQL :
 
 ```bash
 # Depuis le dossier backend/
 uv run python src/rte_energy/ingest_rte.py
 ```
 
+### 3. Lancer l'ingestion des données Météo
+
+Pour récupérer les données météorologiques (température, vent) via Open-Meteo et les insérer dans PostgreSQL :
+
+```bash
+# Depuis le dossier backend/
+uv run python src/rte_energy/ingest_weather.py
+```
+
 ---
 
 ## 🗄️ Schéma de la Base de Données
 
-### Table : `consumption_forecast` (ou `generation_forecast`)
+### Table : `consumption_forecast`
 
 Stocke les prévisions énergétiques par tranche horaire et par filière.
 
@@ -154,21 +168,25 @@ Stocke les conditions météorologiques associées aux périodes d'analyse.
 
 | Colonne | Type | Description |
 | :--- | :--- | :--- |
-| `timestamp` | `TIMESTAMPTZ` (PK) | Horodatage de l'observation / prévision |
-| `temperature_c` | `FLOAT` | Température moyenne (°C) |
-| `wind_speed` | `FLOAT` | Vitesse du vent (km/h ou m/s) |
+| `id` | `SERIAL PRIMARY KEY` | Identifiant technique unique |
+| `timestamp` | `TIMESTAMPTZ` | Horodatage de l'observation / prévision |
+| `temperature_c` | `FLOAT` | Température moyenne à 2m (°C) |
+| `wind_speed` | `FLOAT` | Vitesse du vent à 10m (km/h) |
+| `updated_at` | `TIMESTAMPTZ` | Date et heure de dernière mise à jour |
+
+*Contrainte d'unicité (upsert) : `UNIQUE (timestamp)`.*
 
 ---
 
 ## 🗺️ Feuille de Route (Roadmap)
 
 - [x] Authentification OAuth2 avec le portail RTE
-- [x] Initialisation du schéma PostgreSQL
-- [x] Ingestion par lot avec `execute_values`
-- [ ] Correction de la clé primaire composite `(start_date, production_type)`
-- [ ] Dynamisation des dates d'ingestion (arguments CLI / dates du jour)
-- [ ] Connecteur API Météo (ex: Open-Meteo pour la France)
-- [ ] Mise en place d'un CLI complet avec `typer` ou `argparse`
-- [ ] Automatisation de la collecte (Cron / tâche planifiée périodique)
-- [ ] Pipeline Machine Learning de prévision de la demande énergétique
+- [x] Initialisation du schéma PostgreSQL (tables `consumption_forecast` et `weather`)
+- [x] Correction des clés primaires `id` et contraintes d'unicité composites
+- [x] Ingestion par lot avec `execute_values` et upsert sans perte de données
+- [x] Connecteur API Météo (Open-Meteo pour la France)
+- [ ] Dynamisation des dates d'ingestion (calcul dynamique J à J+2)
+- [ ] Script d'orchestration unifié (pipeline unique RTE + Météo)
+- [ ] Automatisation de la collecte (Planificateur Windows / Cron / GitHub Actions)
+- [ ] Pipeline Machine Learning de prévision de la demande / production énergétique
 - [ ] Tableau de bord interactif (Streamlit / Grafana)
