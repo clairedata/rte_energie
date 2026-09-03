@@ -30,9 +30,11 @@ def init_db():
 
     cur.execute("""
         CREATE TABLE IF NOT EXISTS weather (
-            timestamp TIMESTAMPTZ PRIMARY KEY,
+            id SERIAL PRIMARY KEY,
+            timestamp TIMESTAMPTZ NOT NULL UNIQUE,
             temperature_c FLOAT,
-            wind_speed FLOAT
+            wind_speed FLOAT,
+            updated_at TIMESTAMPTZ DEFAULT NOW()
         );
     """)
 
