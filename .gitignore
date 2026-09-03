@@ -1,0 +1,13 @@
+# Environnement virtuel Python
+venv/
+.venv/
+.env
+!.env.example
+
+# Fichiers cache Python
+__pycache__/
+*.pyc
+
+# Données temporaires ou modèles lourds
+*.joblib
+*.pkl
