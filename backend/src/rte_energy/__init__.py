@@ -1,2 +1,4 @@
+from rte_energy.pipeline import run_pipeline
+
 def main() -> None:
-    print("Hello from rte-energy!")
+    run_pipeline()

@@ -11,3 +11,6 @@ __pycache__/
 # Données temporaires ou modèles lourds
 *.joblib
 *.pkl
+
+# Fichiers journaux (logs)
+*.log

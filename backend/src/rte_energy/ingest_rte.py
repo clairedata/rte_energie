@@ -1,4 +1,5 @@
 import os
+from datetime import datetime, timedelta
 import requests
 from dotenv import load_dotenv
 import psycopg2
@@ -29,7 +30,13 @@ def get_token():
     return resp.json()["access_token"]
     
 # Cette fonction permet d'insérer les données dans la base de données à partir du portail rte
-def ingest():
+def ingest(start_date: str | None = None, end_date: str | None = None):
+    # Si aucune date n'est fournie, on calcule dynamiquement : aujourd'hui 00:00 -> J+2 00:00
+    if not start_date or not end_date:
+        now = datetime.now().astimezone().replace(hour=0, minute=0, second=0, microsecond=0)
+        start_date = now.isoformat()
+        end_date = (now + timedelta(days=2)).isoformat()
+
     print("Récupération du token OAuth2 RTE...")
     token = get_token()
     headers = {"Authorization": f"Bearer {token}"}
@@ -38,11 +45,11 @@ def ingest():
     url = "https://digital.iservices.rte-france.com/open_api/generation_forecast/v3/forecasts"
     
     params = {
-        "start_date": "2026-09-04T00:00:00+02:00",
-        "end_date": "2026-09-06T00:00:00+02:00"
+        "start_date": start_date,
+        "end_date": end_date
     }
 
-    print("Interrogation de l'API RTE...")
+    print(f"Interrogation de l'API RTE ({start_date} -> {end_date})...")
     resp = requests.get(url, headers=headers, params=params)
     resp.raise_for_status()
     data = resp.json()

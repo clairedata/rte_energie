@@ -1,4 +1,5 @@
 import os
+from datetime import datetime, timedelta
 import requests
 from dotenv import load_dotenv
 import psycopg2
@@ -18,11 +19,16 @@ DB_CONFIG = {
 LATITUDE = float(os.getenv("WEATHER_LAT", "46.603354"))
 LONGITUDE = float(os.getenv("WEATHER_LON", "1.888334"))
 
-def ingest_weather(start_date: str = "2026-09-04", end_date: str = "2026-09-06"):
+def ingest_weather(start_date: str | None = None, end_date: str | None = None):
     """
     Récupère les prévisions météo (température et vitesse du vent)
     via l'API Open-Meteo et les enregistre dans PostgreSQL.
     """
+    # Si aucune date n'est fournie, calcul dynamique : aujourd'hui -> J+2 (format YYYY-MM-DD)
+    if not start_date or not end_date:
+        now = datetime.now().astimezone().replace(hour=0, minute=0, second=0, microsecond=0)
+        start_date = now.strftime("%Y-%m-%d")
+        end_date = (now + timedelta(days=2)).strftime("%Y-%m-%d")
     url = "https://api.open-meteo.com/v1/forecast"
     params = {
         "latitude": LATITUDE,
