@@ -27,6 +27,7 @@ def get_token():
         data={"grant_type": "client_credentials"}
     )
     resp.raise_for_status()
+    
     return resp.json()["access_token"]
     
 # Cette fonction permet d'insérer les données dans la base de données à partir du portail rte
