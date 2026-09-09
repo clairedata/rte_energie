@@ -73,12 +73,13 @@ def analyze_and_plot(df: pd.DataFrame) -> None:
     plt.legend(fontsize=11)
     plt.tight_layout()
 
-    # Sauvegarde du graphique au format image PNG
-    output_image = "consumption_eda.png"
+    # Sauvegarde du graphique au format image PNG (chemin absolu garanti dans backend/)
+    backend_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    output_image = os.path.join(backend_dir, "consumption_eda.png")
     plt.savefig(output_image, dpi=300)
     plt.close()
-    print(f"✅ Graphique sauvegardé avec succès : backend/{output_image}")
-    print("👉 Vous pourrez ouvrir cette image pour observer la forme de la courbe !")
+    print(f"[OK] Graphique sauvegarde avec succes : {output_image}")
+    print("-> Fermez l'onglet de l'image et rouvrez-le pour forcer le rafraichissement !")
 
 if __name__ == "__main__":
     df = load_consumption_data()
