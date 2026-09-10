@@ -52,10 +52,10 @@ def load_data() -> pd.DataFrame:
 # ==============================================================================
 def train_test_split_temporal(df: pd.DataFrame, test_points: int = 96):
     """
-    Découpage chronologique strict :
-    - test_points = 96 (soit 24 heures complètes au pas de 15 min : 24 x 4 = 96).
-    - Train (Contexte passé) : les 3 premiers jours (288 points).
-    - Test (Futur à prédire) : le 4ème jour (96 points).
+     Découpage chronologique strict :
+    - test_points = 96 = 24 heures.
+    - train_df = tous les points sauf les 96 derniers.
+    - test_df = les 96 derniers points.
     """
     train_df = df.iloc[:-test_points]
     test_df = df.iloc[-test_points:]
@@ -91,6 +91,17 @@ def predict_with_chronos_bolt(train_df: pd.DataFrame, prediction_length: int = 9
         model_name,
         device_map="cpu"
     )
+
+    print("==========================================")
+    print("CONFIGURATION CHRONOS-BOLT")
+    print("==========================================")
+
+    print("Context length :", pipeline.model_context_length)
+    print("Prediction length :", pipeline.model_prediction_length)
+    print("Quantiles :", pipeline.quantiles)
+
+    print("Chronos config :")
+    print(pipeline.model.config.chronos_config)
 
     print(f"🤖 Inférence directe en cours sur un horizon de {prediction_length} pas de 15 minutes...")
     
