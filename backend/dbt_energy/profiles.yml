@@ -1,0 +1,17 @@
+# ==============================================================================
+# CONFIGURATION DE CONNEXION POSTGRESQL (profiles.yml)
+# ==============================================================================
+
+dbt_energy:
+  target: dev
+  outputs:
+    dev:
+      type: postgres
+      host: "{{ env_var('DB_HOST', 'localhost') }}"
+      port: "{{ env_var('DB_PORT', '5432') | int }}"
+      user: "{{ env_var('DB_USER', 'postgres') }}"
+      password: "{{ env_var('DB_PASSWORD', '@066936852@Pp') }}"
+      dbname: "{{ env_var('DB_NAME', 'energy_db') }}"
+      schema: analytics
+      threads: 4
+      connect_timeout: 10

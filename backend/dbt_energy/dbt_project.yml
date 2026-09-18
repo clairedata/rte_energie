@@ -1,0 +1,29 @@
+# ==============================================================================
+# CONFIGURATION PRINCIPALE DU PROJET dbt (dbt_project.yml)
+# ==============================================================================
+
+name: 'dbt_energy'
+version: '1.0.0'
+config-version: 2
+
+# Fait référence au bloc 'dbt_energy' dans profiles.yml
+profile: 'dbt_energy'
+
+# Dossiers où se trouvent les modèles et tests
+model-paths: ["models"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+
+# Dossiers temporaires créés par dbt
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+# Configuration des modèles
+models:
+  dbt_energy:
+    staging:
+      +materialized: view    # Crée des vues SQL pour le staging
+    marts:
+      +materialized: table   # Crée des tables physiques pour l'analytique et le ML

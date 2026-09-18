@@ -1,0 +1,50 @@
+# ==============================================================================
+# TESTS DE QUALITÉ DES DONNÉES (schema.yml)
+# ==============================================================================
+# Ce fichier définit les tests automatisés exécutés par la commande 'dbt test'.
+# dbt va générer et exécuter des requêtes SQL pour s'assurer que ces règles
+# sont 100% respectées par vos données.
+# ==============================================================================
+
+version: 2
+
+models:
+  # 1. Tests sur le modèle de consommation
+  - name: stg_consumption
+    description: "Vérification de la qualité des données de consommation électrique"
+    columns:
+      - name: forecast_id
+        description: "Identifiant unique de la prévision"
+        tests:
+          - not_null    # Le champ ne doit jamais être vide / NULL
+          - unique      # Chaque identifiant doit être unique
+
+      - name: value_mw
+        description: "Puissance en MW"
+        tests:
+          - not_null    # La puissance mesurée ne doit jamais être NULL
+
+      - name: forecast_type
+        description: "Horizon temporel de prévision"
+        tests:
+          - accepted_values:
+              # dbt vérifiera qu'aucune autre valeur bizarre ne s'est glissée ici
+              values: ['CURRENT', 'D-1', 'D-2', 'D-3']
+
+  # 2. Tests sur le modèle météo
+  - name: stg_weather
+    description: "Vérification de la qualité des données météo"
+    columns:
+      - name: weather_id
+        tests:
+          - not_null
+          - unique
+
+      - name: observation_time
+        tests:
+          - not_null
+          - unique      # Une seule observation météo par heure !
+
+      - name: temperature_c
+        tests:
+          - not_null
