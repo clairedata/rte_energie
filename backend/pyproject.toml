@@ -11,12 +11,14 @@ dependencies = [
     "chronos-forecasting>=2.3.1",
     "dbt-postgres>=1.11.0",
     "dotenv>=0.9.9",
+    "lightgbm>=4.7.0",
     "matplotlib>=3.11.1",
     "numpy>=2.5.3",
     "pandas>=3.0.5",
     "psycopg2-binary>=2.9.12",
     "python-dotenv>=1.2.3",
     "requests>=2.34.2",
+    "scikit-learn>=1.9.1",
 ]
 
 [project.scripts]

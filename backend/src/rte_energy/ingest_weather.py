@@ -23,12 +23,28 @@ def ingest_weather(start_date: str | None = None, end_date: str | None = None):
     """
     Récupère les prévisions météo (température et vitesse du vent)
     via l'API Open-Meteo et les enregistre dans PostgreSQL.
+    Si aucune date n'est fournie, s'aligne automatiquement sur l'historique
+    disponible dans 'consumption_forecast'.
     """
-    # Si aucune date n'est fournie, calcul dynamique : aujourd'hui -> J+2 (format YYYY-MM-DD)
     if not start_date or not end_date:
-        now = datetime.now().astimezone().replace(hour=0, minute=0, second=0, microsecond=0)
-        start_date = now.strftime("%Y-%m-%d")
-        end_date = (now + timedelta(days=2)).strftime("%Y-%m-%d")
+        try:
+            conn = psycopg2.connect(**DB_CONFIG)
+            cur = conn.cursor()
+            cur.execute("SELECT MIN(start_date)::date, MAX(end_date)::date FROM consumption_forecast;")
+            row = cur.fetchone()
+            cur.close()
+            conn.close()
+            if row and row[0] and row[1]:
+                start_date = row[0].strftime("%Y-%m-%d")
+                end_date = (row[1] + timedelta(days=2)).strftime("%Y-%m-%d")
+            else:
+                now = datetime.now().astimezone().replace(hour=0, minute=0, second=0, microsecond=0)
+                start_date = now.strftime("%Y-%m-%d")
+                end_date = (now + timedelta(days=2)).strftime("%Y-%m-%d")
+        except Exception:
+            now = datetime.now().astimezone().replace(hour=0, minute=0, second=0, microsecond=0)
+            start_date = now.strftime("%Y-%m-%d")
+            end_date = (now + timedelta(days=2)).strftime("%Y-%m-%d")
     url = "https://api.open-meteo.com/v1/forecast"
     params = {
         "latitude": LATITUDE,
