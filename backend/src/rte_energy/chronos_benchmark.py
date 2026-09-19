@@ -65,11 +65,8 @@ def load_data() -> pd.DataFrame:
     query = """
         SELECT 
             start_date,
-            AVG(value_mw) AS value_mw
-        FROM consumption_forecast
-        WHERE production_type = 'AGGREGATED_CPC'
-          AND forecast_type = 'D-1'
-        GROUP BY start_date
+            value_mw
+        FROM analytics.fct_national_consumption
         ORDER BY start_date ASC;
     """
     df = pd.read_sql_query(query, conn)

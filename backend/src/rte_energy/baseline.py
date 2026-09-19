@@ -18,17 +18,16 @@ DB_CONFIG = {
 
 def load_data() -> pd.DataFrame:
     """
-    Étape 1 : Récupération de la série temporelle propre de consommation (AGGREGATED_CPC D-1).
+    Étape 1 : Récupération de la série temporelle propre préparée et testée par dbt.
+    Toute la logique métier (filtrage, dédoublonnage, nettoyage) est désormais
+    centralisée dans le modèle dbt 'analytics.fct_national_consumption'.
     """
     conn = psycopg2.connect(**DB_CONFIG)
     query = """
         SELECT 
-            start_date,
-            AVG(value_mw) AS value_mw
-        FROM consumption_forecast
-        WHERE production_type = 'AGGREGATED_CPC'
-          AND forecast_type = 'D-1'
-        GROUP BY start_date
+            start_date, 
+            value_mw 
+        FROM analytics.fct_national_consumption 
         ORDER BY start_date ASC;
     """
     df = pd.read_sql_query(query, conn)

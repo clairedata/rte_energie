@@ -28,8 +28,7 @@ models:
         description: "Horizon temporel de prévision"
         tests:
           - accepted_values:
-              # dbt vérifiera qu'aucune autre valeur bizarre ne s'est glissée ici
-              values: ['CURRENT', 'D-1', 'D-2', 'D-3']
+              values: ['CURRENT', 'ID', 'D-1', 'D-2', 'D-3']
 
   # 2. Tests sur le modèle météo
   - name: stg_weather

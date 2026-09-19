@@ -1,0 +1,35 @@
+# ==============================================================================
+# CONFIGURATION DOCKER COMPOSE POUR POSTGRESQL (docker-compose.yml)
+# ==============================================================================
+# Ce fichier permet de lancer un serveur PostgreSQL complet, isolé et persistant
+# en une seule commande : 'docker compose up -d'.
+# ==============================================================================
+
+version: '3.8'
+
+services:
+  postgres:
+    # Image officielle PostgreSQL 16 légère (Alpine Linux)
+    image: postgres:16-alpine
+    container_name: energy_postgres
+    restart: always
+    
+    # Configuration des identifiants (identiques à votre configuration actuelle)
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-@066936852@Pp}
+      POSTGRES_DB: ${DB_NAME:-energy_db}
+      
+    # Liaison de port : le port 5432 du conteneur est accessible sur localhost:5432
+    ports:
+      - "5432:5432"
+      
+    # Volume persistant : même si le conteneur est éteint ou recréé,
+    # les données restent stockées sur votre machine dans ce volume dédié.
+    volumes:
+      - postgres_energy_data:/var/lib/postgresql/data
+
+volumes:
+  # Déclaration du volume persistant
+  postgres_energy_data:
+    name: postgres_energy_data

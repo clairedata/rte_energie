@@ -22,16 +22,12 @@ def load_consumption_data() -> pd.DataFrame:
     """
     conn = psycopg2.connect(**DB_CONFIG)
     
-    # On récupère la prévision de la veille (D-1) pour la consommation nationale (AGGREGATED_CPC)
-    # Le 'GROUP BY start_date' avec 'AVG(value_mw)' garantit d'avoir exactement 1 point unique par créneau horaire
+    # Récupération directe de la série nettoyée et consolidée par dbt
     query = """
         SELECT 
             start_date,
-            AVG(value_mw) AS value_mw
-        FROM consumption_forecast
-        WHERE production_type = 'AGGREGATED_CPC'
-          AND forecast_type = 'D-1'
-        GROUP BY start_date
+            value_mw
+        FROM analytics.fct_national_consumption
         ORDER BY start_date ASC;
     """
     

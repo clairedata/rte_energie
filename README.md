@@ -13,6 +13,7 @@ Ce projet a pour objectif de constituer une base de données temporelle sous Pos
 - [Prérequis](#-prérequis)
 - [Installation & Démarrage](#-installation--démarrage)
 - [Configuration (.env)](#-configuration-env)
+- [Transformation & Qualité des Données (dbt)](#-transformation--qualité-des-données-dbt)
 - [Utilisation](#-utilisation)
 - [Schéma de la Base de Données](#-schéma-de-la-base-de-données)
 - [Modélisation & Baseline de Référence](#-modélisation--baseline-de-référence)
@@ -26,6 +27,7 @@ Ce projet a pour objectif de constituer une base de données temporelle sous Pos
 - 📊 **Ingestion des séries énergétiques :** Récupération des prévisions de consommation (`AGGREGATED_CPC`) et de production par filière (`SOLAR`, `WIND_ONSHORE`, `WIND_OFFSHORE`) par horizon (`CURRENT`, `D-1`, `D-2`, `D-3`).
 - 🌦️ **Intégration météo (Open-Meteo) :** Collecte horaire de la température à 2m (°C) et du vent à 10m (km/h).
 - 🗄️ **Stockage PostgreSQL optimisé :** Séries temporelles horodatées (`TIMESTAMPTZ`), clés techniques `id` et gestion des conflits d'insertion sans doublon (`ON CONFLICT ... DO UPDATE`).
+- 🔄 **Transformation & Qualité des Données (dbt Core) :** Modélisation ELT modulaire dans PostgreSQL via `dbt-postgres`. Séparation stricte entre les données brutes (`public`) et transformées (`analytics`), vues de staging nettoyées et tests de validation de qualité automatisés (`dbt test`).
 - ⏱️ **Double Automatisation (Cron Job) :**
   - **Local :** Tâche planifiée Windows via `run_pipeline.bat` (`schtasks`).
   - **Cloud :** Workflow GitHub Actions quotidien avec conteneur PostgreSQL (`.github/workflows/pipeline.yml`).
@@ -47,10 +49,19 @@ rte-energy/
 │       └── pipeline.yml  # Cron Job quotidien GitHub Actions (06h00 UTC)
 └── backend/
     ├── LLM.md            # Cadrage et stratégie pour les modèles prédictifs / TSFM
-    ├── pyproject.toml    # Dépendances du projet (uv, pandas, matplotlib...)
+    ├── pyproject.toml    # Dépendances du projet (uv, dbt-postgres, pandas, torch...)
     ├── uv.lock           # Verrouillage exact des versions
     ├── run_pipeline.bat  # Lanceur Windows pour le Planificateur de tâches
     ├── pipeline.log      # Fichier journal horodaté d'exécution
+    ├── dbt_energy/       # Projet dbt (Transformation & Modélisation ELT)
+    │   ├── dbt_project.yml   # Configuration principale du projet dbt
+    │   ├── profiles.yml      # Connexion PostgreSQL (schéma analytics)
+    │   └── models/
+    │       └── staging/
+    │           ├── sources.yml       # Déclaration des sources brutes (public)
+    │           ├── schema.yml        # Tests automatisés dbt (not_null, unique...)
+    │           ├── stg_consumption.sql # Modèle staging consommation
+    │           └── stg_weather.sql     # Modèle staging météo
     ├── consumption_eda.png       # Graphique exploratoire de la consommation
     ├── baseline_evaluation.png  # Graphique d'évaluation de la Baseline naïve
     ├── chronos_evaluation.png   # Graphique comparatif Baseline vs Amazon Chronos-Bolt
@@ -126,6 +137,43 @@ WEATHER_LON=1.888334
 
 ---
 
+## 🔄 Transformation & Qualité des Données (dbt)
+
+Le projet applique les principes de la **Modern Data Stack (ELT)**. Les données brutes ingérées par Python dans le schéma `public` sont transformées, standardisées et testées par **dbt Core** (`dbt-postgres`) dans un schéma dédié `analytics`.
+
+```text
+[API RTE & Météo] ──► Python (Extract & Load) ──► PostgreSQL (schema public)
+                                                        │
+                                                 dbt (Transform)
+                                                        │
+                                                        ▼
+                                             PostgreSQL (schema analytics)
+                                              ├── stg_consumption (vue)
+                                              └── stg_weather (vue)
+```
+
+### Commandes dbt :
+
+Se positionner dans le dossier `backend/dbt_energy` :
+```bash
+cd backend/dbt_energy
+```
+
+1. **Tester la connexion à PostgreSQL :**
+   ```bash
+   uv run dbt debug --profiles-dir .
+   ```
+2. **Compiler et exécuter les modèles (création des vues/tables) :**
+   ```bash
+   uv run dbt run --profiles-dir .
+   ```
+3. **Lancer les tests de qualité des données :**
+   ```bash
+   uv run dbt test --profiles-dir .
+   ```
+
+---
+
 ## 💻 Utilisation
 
 ### 1. Initialiser les tables PostgreSQL
@@ -139,17 +187,25 @@ uv run rte-energy
 # ou : uv run python src/rte_energy/pipeline.py
 ```
 
-### 3. Lancer l'analyse exploratoire (EDA)
+### 3. Exécuter les transformations et tests dbt
+```bash
+cd dbt_energy
+uv run dbt run --profiles-dir .
+uv run dbt test --profiles-dir .
+cd ..
+```
+
+### 4. Lancer l'analyse exploratoire (EDA)
 ```bash
 uv run python src/rte_energy/eda.py
 ```
 
-### 4. Évaluer la Baseline de référence
+### 5. Évaluer la Baseline de référence
 ```bash
 uv run python src/rte_energy/baseline.py
 ```
 
-### 5. Exécuter le modèle de fondation (Amazon Chronos-Bolt)
+### 6. Exécuter le modèle de fondation (Amazon Chronos-Bolt)
 ```bash
 uv run python src/rte_energy/chronos_predict.py
 ```
@@ -158,7 +214,11 @@ uv run python src/rte_energy/chronos_predict.py
 
 ## 🗄️ Schéma de la Base de Données
 
-### Table : `consumption_forecast`
+L'architecture sépare strictement les données brutes des données analytiques préparées :
+
+### 📁 1. Schéma `public` (Données Brutes)
+
+#### Table : `consumption_forecast`
 | Colonne | Type | Description |
 | :--- | :--- | :--- |
 | `id` | `SERIAL PRIMARY KEY` | Identifiant technique unique |
@@ -172,7 +232,7 @@ uv run python src/rte_energy/chronos_predict.py
 
 *Contrainte d'unicité (upsert) : `UNIQUE (start_date, production_type, forecast_type, sub_type)`.*
 
-### Table : `weather`
+#### Table : `weather`
 | Colonne | Type | Description |
 | :--- | :--- | :--- |
 | `id` | `SERIAL PRIMARY KEY` | Identifiant technique unique |
@@ -182,6 +242,14 @@ uv run python src/rte_energy/chronos_predict.py
 | `updated_at` | `TIMESTAMPTZ` | Date et heure de mise à jour |
 
 *Contrainte d'unicité (upsert) : `UNIQUE (timestamp)`.*
+
+### 📁 2. Schéma `analytics` (Données Transformées & Testées dbt)
+
+#### Vue : `stg_consumption`
+Nettoyage de la consommation/production électrique. Clé primaire renommée `forecast_id`, arrondis décimaux, exclusion défensive des puissances négatives (`WHERE value_mw >= 0`).
+
+#### Vue : `stg_weather`
+Standardisation des données météo Open-Meteo. Clé primaire `weather_id`, horodatage normalisé à l'heure (`date_trunc('hour', timestamp)`).
 
 ---
 
@@ -221,10 +289,15 @@ Pour anticiper la consommation électrique française (`AGGREGATED_CPC`) à hori
 - [x] Dynamisation automatique des dates (calcul quotidien J à J+2)
 - [x] Script d'orchestration unifié (`pipeline.py` & commande `rte-energy`)
 - [x] Double automatisation de la collecte (Planificateur Windows + Cron Job GitHub Actions)
+- [x] Modélisation et transformation ELT avec **dbt Core** (`dbt-postgres`)
+- [x] Découpage en schémas PostgreSQL (`public` brut vs `analytics` transformé)
+- [x] Tests automatisés de qualité de données dbt (`not_null`, `unique`, `accepted_values`)
 - [x] Analyse exploratoire des données (EDA) et tracé de la série temporelle
 - [x] Modèle de référence (Baseline Naïve Saisonnière) et métriques (MAE, RMSE, MAPE, WAPE)
 - [x] Expérimentation Zero-Shot avec Foundation Model (Amazon Chronos-Bolt)
 - [x] Benchmark comparatif et validation du modèle champion V1 (Chronos-Bolt Small - WAPE 8.87%)
+- [ ] Couche Marts dbt (`fct_energy_features.sql`) unifiant consommation et météo
 - [ ] Modèle Machine Learning comparatif sur long historique (LightGBM avec météo et variables calendaires)
 - [ ] Module de prédiction réutilisable pour production (`predict.py`)
 - [ ] Tableau de bord interactif (Streamlit / Grafana)
+

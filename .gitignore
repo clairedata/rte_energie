@@ -14,3 +14,9 @@ __pycache__/
 
 # Fichiers journaux (logs)
 *.log
+**/logs/
+
+# Artefacts temporaires dbt
+**/target/
+**/dbt_packages/
+.user.yml
