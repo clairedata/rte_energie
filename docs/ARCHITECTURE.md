@@ -1,6 +1,35 @@
 # 🏛️ Architecture Technique & Schémas Détaillés du Projet
 
-Ce document présente l'architecture complète du projet **RTE Energy Pipeline & Inférence IA**, depuis la collecte de données brutes jusqu'au déploiement conteneurisé sous Docker.
+---
+
+## 🌟 Introduction & Contexte du Projet
+
+Le projet **RTE Energy Pipeline & Inférence IA** est une plateforme moderne de traitement de données (Data Engineering) et d'Intelligence Artificielle prédictive (Machine Learning & Time Series Foundation Models) dédiée au réseau électrique français. 
+
+Il interconnecte les flux de données ouverts de **RTE France** (Réseau de Transport d'Électricité) et les données météorologiques d'**Open-Meteo** pour construire un socle de données fiable et générer des prévisions de consommation électrique à haute précision.
+
+---
+
+## ⚡ Pourquoi la Prédiction Énergétique est-elle Cruciale ? (Utilité & Enjeux Métier)
+
+Prédire avec précision la demande en électricité à court et moyen terme (J-1, J-2, infra-journalier) répond à des défis stratégiques majeurs :
+
+### 1. Le Maintien de l'Équilibre Offre / Demande en Temps Réel
+> **L'électricité ne se stocke pas à grande échelle sur le réseau.**  
+> À chaque seconde, la quantité d'électricité injectée sur le réseau doit être **rigoureusement égale** à la quantité consommée. Tout déséquilibre entraîne une variation de la fréquence (50 Hz en Europe), risquant d'endommager les équipements industriels ou de provoquer un effondrement généralisé du réseau (**Blackout**).
+
+### 2. La Thermosensibilité Exceptionnelle de la France
+La France possède une particularité structurelle majeure : une part très importante de son parc immobilier utilise le chauffage électrique.  
+- **Impact thermique :** En hiver, **une baisse de 1°C de la température nationale engendre une augmentation de la demande d'environ 2 400 MW** (l'équivalent de 2 à 3 réacteurs nucléaires en fonctionnement continu).
+- La prédiction croisée consommation + météo permet d'anticiper précisément ces pics de tension thermique.
+
+### 3. Transition Énergétique & Intégration des Énergies Renouvelables
+Avec la part grandissante du solaire et de l'éolien, la production devient intermittente et météo-dépendante.  
+- Prédire la consommation permet aux opérateurs d'activer en priorité les sources d'énergie décarbonées (nucléaire, hydraulique, renouvelables) et d'**éviter l'allumage des centrales d'appoint polluantes et coûteuses (gaz, fioul, charbon)**.
+
+### 4. Enjeux Économiques & Marchés de l'Énergie
+Sur les marchés de l'électricité (*Day-Ahead*, *Intraday*), les fournisseurs et gestionnaires doivent soumettre leurs programmes d'approvisionnement la veille pour le lendemain.  
+- Une erreur de prévision entraîne des **coûts de pénalité de déséquilibre** (prix d'écart de balance) qui peuvent chiffrer en millions d'euros lors de fortes tensions de marché.
 
 ---
 
