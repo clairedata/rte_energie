@@ -1,35 +1,67 @@
 # ==============================================================================
-# CONFIGURATION DOCKER COMPOSE POUR POSTGRESQL (docker-compose.yml)
+# ARCHITECTURE CONTENEURISÉE MULTI-SERVICES (docker-compose.yml)
 # ==============================================================================
-# Ce fichier permet de lancer un serveur PostgreSQL complet, isolé et persistant
-# en une seule commande : 'docker compose up -d'.
+# Orchestre deux conteneurs :
+# 1. postgres : base de données PostgreSQL 16 persistante.
+# 2. pipeline : backend Python 3.13 (buildé depuis docker/Dockerfile avec contexte racine).
 # ==============================================================================
 
 version: '3.8'
 
 services:
+  # ----------------------------------------------------------------------------
+  # SERVICE 1 : Base de Données PostgreSQL
+  # ----------------------------------------------------------------------------
   postgres:
-    # Image officielle PostgreSQL 16 légère (Alpine Linux)
     image: postgres:16-alpine
     container_name: energy_postgres
     restart: always
-    
-    # Configuration des identifiants (identiques à votre configuration actuelle)
     environment:
       POSTGRES_USER: ${DB_USER:-postgres}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-@066936852@Pp}
       POSTGRES_DB: ${DB_NAME:-energy_db}
-      
-    # Liaison de port : le port 5432 du conteneur est accessible sur localhost:5432
     ports:
       - "5432:5432"
-      
-    # Volume persistant : même si le conteneur est éteint ou recréé,
-    # les données restent stockées sur votre machine dans ce volume dédié.
     volumes:
       - postgres_energy_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-energy_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ----------------------------------------------------------------------------
+  # SERVICE 2 : Pipeline de Données & Inférence IA
+  # ----------------------------------------------------------------------------
+  pipeline:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    container_name: energy_pipeline
+    restart: "no"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file:
+      - path: ../.env
+        required: false
+      - path: .env
+        required: false
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=${DB_NAME:-energy_db}
+      - DB_USER=${DB_USER:-postgres}
+      - DB_PASSWORD=${DB_PASSWORD:-@066936852@Pp}
+      - RTE_CLIENT_ID=${RTE_CLIENT_ID}
+      - RTE_CLIENT_SECRET=${RTE_CLIENT_SECRET}
+    volumes:
+      # Montage du modèle Fine-Tuned (accès direct sans alourdir l'image)
+      - ./models:/app/models
+      # Synchronisation des répertoires de sortie vers vos dossiers hôtes
+      - ./logs:/app/logs
+      - ./reports/figures:/app/reports/figures
 
 volumes:
-  # Déclaration du volume persistant
   postgres_energy_data:
     name: postgres_energy_data

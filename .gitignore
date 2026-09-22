@@ -1,22 +1,36 @@
-# Environnement virtuel Python
-venv/
+# Environnements virtuels
 .venv/
-.env
-!.env.example
+venv/
+env/
+ENV/
 
-# Fichiers cache Python
+# Caches Python
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
 
-# Données temporaires ou modèles lourds
+# Données temporaires, sauvegardes volumineuses et modèles (>100MB rejetés par GitHub)
+data/backups/
+*.sql
 *.joblib
 *.pkl
+*.safetensors
+models/
 
 # Fichiers journaux (logs)
+logs/
 *.log
-**/logs/
 
-# Artefacts temporaires dbt
-**/target/
-**/dbt_packages/
-.user.yml
+# Sorties de compilation dbt
+dbt_energy/target/
+dbt_energy/dbt_packages/
+dbt_energy/logs/
+
+# Variables d'environnement locales
+.env
+
+# Fichiers système et IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
