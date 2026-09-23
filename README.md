@@ -44,37 +44,38 @@ rte-energy/
 ├── .env.example          # Modèle des variables de configuration
 ├── .gitignore            # Fichiers et dossiers ignorés par Git
 ├── README.md             # Documentation principale
+├── Brique_Technique.md   # Spécification détaillée des 15 briques techniques
+├── docker-compose.yml    # Déploiement multi-services conteneurisé
 ├── .github/
 │   └── workflows/
 │       └── pipeline.yml  # Cron Job quotidien GitHub Actions (06h00 UTC)
-└── backend/
-    ├── LLM.md            # Cadrage et stratégie pour les modèles prédictifs / TSFM
-    ├── pyproject.toml    # Dépendances du projet (uv, dbt-postgres, pandas, torch...)
-    ├── uv.lock           # Verrouillage exact des versions
-    ├── run_pipeline.bat  # Lanceur Windows pour le Planificateur de tâches
-    ├── pipeline.log      # Fichier journal horodaté d'exécution
-    ├── dbt_energy/       # Projet dbt (Transformation & Modélisation ELT)
-    │   ├── dbt_project.yml   # Configuration principale du projet dbt
-    │   ├── profiles.yml      # Connexion PostgreSQL (schéma analytics)
-    │   └── models/
-    │       └── staging/
-    │           ├── sources.yml       # Déclaration des sources brutes (public)
-    │           ├── schema.yml        # Tests automatisés dbt (not_null, unique...)
-    │           ├── stg_consumption.sql # Modèle staging consommation
-    │           └── stg_weather.sql     # Modèle staging météo
-    ├── consumption_eda.png       # Graphique exploratoire de la consommation
-    ├── baseline_evaluation.png  # Graphique d'évaluation de la Baseline naïve
-    ├── chronos_evaluation.png   # Graphique comparatif Baseline vs Amazon Chronos-Bolt
-    └── src/
-        └── rte_energy/
-            ├── __init__.py          # Point d'entrée CLI (uv run rte-energy)
-            ├── init_db.py           # Création et migration des tables SQL
-            ├── ingest_rte.py        # Ingestion des données RTE France
-            ├── ingest_weather.py    # Ingestion météo Open-Meteo
-            ├── pipeline.py          # Orchestrateur unifié (RTE + Météo)
-            ├── eda.py               # Analyse exploratoire et statistiques
-            ├── baseline.py          # Modèle naïf saisonnier et calcul des métriques
-            └── chronos_predict.py   # Modèle TSFM Amazon Chronos-Bolt Small (Zero-Shot)
+├── frontend/             # 🌐 Application Web Front-End React (éCO2mix)
+│   ├── src/
+│   │   ├── components/   # Composants modulaires (Header, KpiGrid, ChartSection...)
+│   │   ├── types/        # Typage TypeScript strict (energy.ts)
+│   │   ├── App.tsx       # Composant racine orchestrant l'état et le refresh
+│   │   └── index.css     # Design System Vanilla CSS (Dark Mode & Néon)
+│   ├── package.json      # Dépendances React 19, Lucide, Chart.js, Vite
+│   └── vite.config.ts    # Configuration du proxy API /api -> :8000
+├── frontend_vanilla/     # 📦 Version Vanilla HTML/JS archivée de secours
+├── dbt_energy/           # Transformation & Modélisation ELT dbt Core
+│   ├── dbt_project.yml
+│   └── models/
+│       ├── staging/      # Vues de nettoyage (stg_consumption, stg_weather)
+│       └── marts/        # Tables de faits (fct_national_consumption, fct_energy_features)
+├── models/               # Poids des modèles IA entraînés
+│   ├── chronos-bolt-rte/ # Checkpoint Hugging Face Chronos-Bolt fine-tuné
+│   └── lightgbm_rte.joblib # Modèle LightGBM tabulaire sérialisé
+├── reports/figures/      # Graphiques d'évaluation et de prévision exportés
+└── src/
+    └── rte_energy/
+        ├── config.py     # Configuration, chemins et accès PostgreSQL
+        ├── api/          # 🚀 API REST FastAPI (Restitution des données)
+        │   └── app.py    # Endpoints (/api/kpi, /api/consumption, /api/benchmark)
+        ├── db/           # DDL, connexion et migrations SQL
+        ├── ingestion/    # Connecteurs RTE (OAuth2) et Open-Meteo
+        ├── training/     # Expérimentations (Baseline, Chronos, LightGBM, Benchmark)
+        └── production/   # Services autonomes (predict.py, pipeline.py E2E)
 ```
 
 ---
@@ -202,13 +203,44 @@ uv run python src/rte_energy/eda.py
 
 ### 5. Évaluer la Baseline de référence
 ```bash
-uv run python src/rte_energy/baseline.py
+uv run python src/rte_energy/training/baseline.py
 ```
 
-### 6. Exécuter le modèle de fondation (Amazon Chronos-Bolt)
+### 6. Entraîner le modèle LightGBM (Météo + Lags)
 ```bash
-uv run python src/rte_energy/chronos_predict.py
+uv run python src/rte_energy/training/lgbm_model.py
 ```
+
+### 7. Exécuter le Fine-Tuning de Chronos-Bolt Small
+```bash
+uv run python src/rte_energy/training/chronos_finetune.py
+```
+
+### 8. Lancer le Benchmark Comparatif (3-Way / 4-Way)
+```bash
+uv run python src/rte_energy/training/chronos_benchmark.py
+```
+
+### 9. 🌐 Lancer l'Application Web Front-End (React + FastAPI)
+
+L'application supporte deux modes d'exécution :
+
+#### Mode A — Production Unifié (Recommandé) :
+Le serveur FastAPI distribue directement l'application React compilée :
+```bash
+# 1. Compiler le Front-End React (si modifications)
+cd frontend && npm run build && cd ..
+
+# 2. Lancer le serveur unifié (API + React)
+uv run uvicorn rte_energy.api.app:app --host 127.0.0.1 --port 8000 --reload
+```
+*Accédez à l'application sur : [http://localhost:8000](http://localhost:8000).*
+
+#### Mode B — Développement Rapide (Vite HMR) :
+Deux terminaux séparés pour profiter du rechargement à chaud instantané :
+* **Terminal 1 (Backend API) :** `uv run uvicorn rte_energy.api.app:app --host 127.0.0.1 --port 8000 --reload`
+* **Terminal 2 (Frontend React) :** `cd frontend && npm run dev`
+*Accédez au serveur de développement sur : [http://localhost:5173](http://localhost:5173).*
 
 ---
 
@@ -296,8 +328,8 @@ Pour anticiper la consommation électrique française (`AGGREGATED_CPC`) à hori
 - [x] Modèle de référence (Baseline Naïve Saisonnière) et métriques (MAE, RMSE, MAPE, WAPE)
 - [x] Expérimentation Zero-Shot avec Foundation Model (Amazon Chronos-Bolt)
 - [x] Benchmark comparatif et validation du modèle champion V1 (Chronos-Bolt Small - WAPE 8.87%)
-- [ ] Couche Marts dbt (`fct_energy_features.sql`) unifiant consommation et météo
-- [ ] Modèle Machine Learning comparatif sur long historique (LightGBM avec météo et variables calendaires)
-- [ ] Module de prédiction réutilisable pour production (`predict.py`)
-- [ ] Tableau de bord interactif (Streamlit / Grafana)
+- [x] Couche Marts dbt (`fct_energy_features.sql`) unifiant consommation et météo
+- [x] Modèle Machine Learning comparatif sur long historique (LightGBM avec météo et variables calendaires)
+- [x] Module de prédiction réutilisable pour production (`predict.py`)
+- [x] Tableau de bord interactif éCO2mix (FastAPI + HTML5/Vanilla CSS/Chart.js)
 

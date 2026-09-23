@@ -35,6 +35,7 @@ LOGS_DIR = BASE_DIR / "logs"
 MODELS_DIR = BASE_DIR / "models"
 DBT_DIR = BASE_DIR / "dbt_energy"
 SRC_DIR = BASE_DIR / "src"
+FRONTEND_DIR = BASE_DIR / "frontend"
 
 # Modèles spécifiques
 CHRONOS_MODEL_DIR = MODELS_DIR / "chronos-bolt-rte"
