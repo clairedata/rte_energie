@@ -116,9 +116,9 @@ flowchart LR
     subgraph Host ["💻 Machine Hôte (Windows / Serveur)"]
         subgraph LocalFiles ["Fichiers Locaux Synchronisés"]
             Env[".env (Identifiants & Clés)"]
-            ModelsDir["backend/models/chronos-bolt-rte<br/>(Poids du modèle Fine-Tuned)"]
-            LogFile["backend/pipeline.log<br/>(Journal d'exécution)"]
-            PlotFile["backend/latest_forecast.png<br/>(Graphique de prévision)"]
+            ModelsDir["models/chronos-bolt-rte<br/>(Poids du modèle Fine-Tuned)"]
+            LogFile["logs/pipeline.log<br/>(Journal d'exécution)"]
+            PlotFile["reports/figures/latest_forecast.png<br/>(Graphique de prévision)"]
         end
 
         PortMapping["Port 5432:5432<br/>(Accès Admin local via DBeaver / pgAdmin)"]
@@ -156,15 +156,15 @@ flowchart LR
 ```
 
 ### 💡 Pourquoi cette organisation de volumes ?
-1. **Poids du modèle (`./backend/models`) :** Le modèle fine-tuné pèse ~200 Mo. Au lieu de l'intégrer en dur dans l'image Docker (ce qui alourdirait le build à chaque modification de code), il est monté à la volée.
-2. **Sorties (`pipeline.log`, `latest_forecast.png`) :** Dès que le conteneur calcule la prévision, le fichier image apparaît directement sur votre bureau Windows sans nécessiter de commande `docker cp`.
+1. **Poids du modèle (`./models`) :** Le modèle fine-tuné pèse ~200 Mo. Au lieu de l'intégrer en dur dans l'image Docker (ce qui alourdirait le build à chaque modification de code), il est monté à la volée.
+2. **Sorties (`logs/pipeline.log`, `reports/figures/latest_forecast.png`) :** Dès que le conteneur calcule la prévision, le fichier image apparaît directement sur votre bureau sans nécessiter de commande `docker cp`.
 3. **Persistance (`postgres_energy_data`) :** Même si vous éteignez, recréez ou supprimez vos conteneurs, votre historique de données et vos prévisions ne sont **jamais perdus**.
 
 ---
 
 ## 3. Cycle de Vie Quotidien & Séquence d'Exécution (Orchestrateur)
 
-Quand la commande `uv run rte-energy` (ou le conteneur Docker) démarre, l'orchestrateur [`pipeline.py`](file:///e:/Projects/QRA/rte_energie/backend/src/rte_energy/pipeline.py) exécute 4 étapes séquentielles :
+Quand la commande `uv run rte-energy` (ou le conteneur Docker) démarre, l'orchestrateur [`pipeline.py`](file:///e:/Projects/QRA/rte_energie/src/rte_energy/production/pipeline.py) exécute 4 étapes séquentielles :
 
 ```mermaid
 sequenceDiagram
@@ -327,6 +327,52 @@ flowchart TD
     DeNorm --> Q10
     DeNorm --> Q90
 ```
+
+---
+
+## 6. Architecture Front-End Web éCO2mix & Inférence Dynamique (React 19 + FastAPI)
+
+L'interface utilisateur a été conçue pour reproduire l'ergonomie et la rigueur visuelle d'un centre de dispatching et du portail public **éCO2mix de RTE** :
+
+```mermaid
+flowchart TD
+    subgraph Browser ["🌐 Client Navigateur (React 19 + TypeScript + Vite)"]
+        UI_Head["Header éCO2mix<br/>(Live Pulse, Date Picker, Bouton Refresh)"]
+        UI_Kpi["KpiGrid (4 Cartes)<br/>🏷️ 'Relevé de 23h45' | ⚡ Pic | 🌙 Creux | 🌡️ Météo"]
+        UI_Chart["ChartSection (Master Timeline Chart.js)<br/>🎯 Badges WAPE & MAE calculés dynamiquement"]
+        UI_Bench["BenchmarkTable<br/>(Évaluation globale test set)"]
+        UI_Thermo["ThermosensitivityCard<br/>(Analyse thermique ~2400 MW/°C)"]
+    end
+
+    subgraph Polling ["⏱️ Mécanisme d'Auto-Refresh"]
+        Timer["setInterval (15 minutes = 900 000 ms)<br/>Cadencé sur le pas quart-horaire réel de RTE"]
+    end
+
+    subgraph BackendAPI ["🚀 Serveur FastAPI (Port 8000)"]
+        EP_KPI["/api/kpi<br/>(Puissance actuelle, pic, creux, météo)"]
+        EP_Forecasts["/api/consumption/forecasts?date=YYYY-MM-DD<br/>(Réel 96 pts, Chronos-Bolt q10/q50/q90, Baseline J-1, RTE J, RTE J-1)"]
+        EP_Bench["/api/benchmark<br/>(Tableau comparatif officiel MAE, RMSE, WAPE)"]
+    end
+
+    Timer -.->|"Tick toutes les 15 min"| UI_Head
+    UI_Head -->|"fetchData()"| BackendAPI
+    EP_KPI --> UI_Kpi
+    EP_Forecasts --> UI_Chart
+    EP_Bench --> UI_Bench
+
+    classDef browser fill:#0f172a,stroke:#38bdf8,stroke-width:2px,color:#f8fafc;
+    classDef timer fill:#fef3c7,stroke:#d97706,stroke-width:2px,color:#92400e;
+    classDef backend fill:#064e3b,stroke:#10b981,stroke-width:2px,color:#ecfdf5;
+
+    class UI_Head,UI_Kpi,UI_Chart,UI_Bench,UI_Thermo browser;
+    class Timer timer;
+    class BackendAPI,EP_KPI,EP_Forecasts,EP_Bench backend;
+```
+
+### 🎯 Points Clés de l'Architecture Front-End :
+1. **Cadence de Synchronisation à 15 Minutes :** Les relevés de consommation de RTE (`AGGREGATED_CPC`) étant publiés au pas quart-horaire, le rafraîchissement automatique de l'interface est paramétré à 15 minutes (`900 000 ms`), évitant les sur-sollicitations inutiles de la base de données tout en garantissant des données toujours fraîches.
+2. **Horodatage Précis du Dernier Point :** La carte principale KPI affiche la mention explicite `Relevé de [heure]` (ex: `Relevé de 23h45`) correspondant au dernier point physique connu, levant toute ambiguïté avec la puissance de pic ou les moyennes.
+3. **Calcul Dynamique du WAPE & MAE Journaliers :** Lorsque l'utilisateur sélectionne une date passée dans le sélecteur d'archive, le composant `ChartSection` calcule instantanément en mémoire les métriques réelles du jour ($WAPE$ et $MAE$) pour le modèle IA Chronos-Bolt et la Baseline J-1 par comparaison point par point avec les observations réelles, et les affiche sous forme de badges au-dessus de la courbe.
 
 ---
 

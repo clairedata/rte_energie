@@ -43,9 +43,7 @@ jobs:
 
       # Étape 4 : Installer les dépendances du projet
       - name: Installer les dépendances
-        run: |
-          cd backend
-          uv sync
+        run: uv sync
 
       # Étape 5 : Initialiser la base de données PostgreSQL
       - name: Initialiser les tables SQL
@@ -55,11 +53,9 @@ jobs:
           DB_NAME: energy_db
           DB_USER: postgres
           DB_PASSWORD: password
-        run: |
-          cd backend
-          uv run python src/rte_energy/init_db.py
+        run: uv run python -m rte_energy.db.init_schema
 
-      # Étape 6 : Exécuter le pipeline (RTE + Météo)
+      # Étape 6 : Exécuter le pipeline (RTE + Météo + dbt + Inférence)
       - name: Lancer le Pipeline Energy & Meteo
         env:
           RTE_CLIENT_ID: ${{ secrets.RTE_CLIENT_ID }}
@@ -69,6 +65,4 @@ jobs:
           DB_NAME: energy_db
           DB_USER: postgres
           DB_PASSWORD: password
-        run: |
-          cd backend
-          uv run python src/rte_energy/pipeline.py
+        run: uv run python -m rte_energy.production.pipeline

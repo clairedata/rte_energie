@@ -8,6 +8,9 @@ Ce projet a pour objectif de constituer une base de données temporelle sous Pos
 
 ## 📋 Table des Matières
 
+- 🎯 [**Présentation Générale & Technique (Dossier Complet)**](file:///e:/Projects/QRA/rte_energie/presentation.md)
+- ⚡ [**Guide d'Installation & Déploiement Pas à Pas**](file:///e:/Projects/QRA/rte_energie/installation.md)
+- 🧩 [**Cartographie des 15 Briques Techniques**](file:///e:/Projects/QRA/rte_energie/Brique_Technique.md)
 - [Fonctionnalités](#-fonctionnalités)
 - [Architecture du Projet](#-architecture-du-projet)
 - [Prérequis](#-prérequis)
@@ -100,10 +103,9 @@ cd rte_energie
 
 ### 2. Installer les dépendances
 
-Naviguez dans le dossier `backend` et synchronisez l'environnement avec `uv` :
+Synchronisez directement l'environnement virtuel avec `uv` à la racine du projet :
 
 ```bash
-cd backend
 uv sync
 ```
 
@@ -179,60 +181,73 @@ cd backend/dbt_energy
 
 ### 1. Initialiser les tables PostgreSQL
 ```bash
-uv run python src/rte_energy/init_db.py
+uv run python -m rte_energy.db.init_schema
 ```
 
-### 2. Exécuter le pipeline complet (RTE + Météo)
+### 2. Ingestion des données (RTE + Météo)
 ```bash
-uv run rte-energy
-# ou : uv run python src/rte_energy/pipeline.py
+uv run python -m rte_energy.ingestion.history_loader
+uv run python -m rte_energy.ingestion.weather_client
 ```
 
 ### 3. Exécuter les transformations et tests dbt
 ```bash
-cd dbt_energy
-uv run dbt run --profiles-dir .
-uv run dbt test --profiles-dir .
-cd ..
+uv run dbt run --project-dir dbt_energy --profiles-dir dbt_energy
+uv run dbt test --project-dir dbt_energy --profiles-dir dbt_energy
 ```
 
-### 4. Lancer l'analyse exploratoire (EDA)
+### 4. Lancer le pipeline complet automatisé E2E
 ```bash
-uv run python src/rte_energy/eda.py
+uv run rte-energy
+# ou directement : uv run python -m rte_energy.production.pipeline
 ```
 
-### 5. Évaluer la Baseline de référence
+### 5. Lancer l'analyse exploratoire (EDA)
 ```bash
-uv run python src/rte_energy/training/baseline.py
+uv run python -m rte_energy.training.eda
 ```
 
-### 6. Entraîner le modèle LightGBM (Météo + Lags)
+### 6. Évaluer la Baseline de référence (J-1)
 ```bash
-uv run python src/rte_energy/training/lgbm_model.py
+uv run python -m rte_energy.training.baseline
 ```
 
-### 7. Exécuter le Fine-Tuning de Chronos-Bolt Small
+### 7. Entraîner le modèle LightGBM (Météo + Lags)
 ```bash
-uv run python src/rte_energy/training/chronos_finetune.py
+uv run python -m rte_energy.training.lgbm_model
 ```
 
-### 8. Lancer le Benchmark Comparatif (3-Way / 4-Way)
+### 8. Exécuter le Fine-Tuning de Chronos-Bolt Small
 ```bash
-uv run python src/rte_energy/training/chronos_benchmark.py
+uv run python -m rte_energy.training.chronos_finetune
 ```
 
-### 9. 🌐 Lancer l'Application Web Front-End (React + FastAPI)
+### 9. Lancer le Benchmark Comparatif (TSFM vs Naïve)
+```bash
+uv run python -m rte_energy.training.chronos_benchmark
+```
 
-L'application supporte deux modes d'exécution :
+### 10. Générer la prévision opérationnelle (Inférence 24h)
+```bash
+uv run python -m rte_energy.production.predict
+```
+
+### 11. 🌐 Lancer l'Application Web Front-End (React 19 + FastAPI)
+
+L'application web offre un tableau de bord temps réel haute précision inspiré du portail éCO2mix de RTE :
+- ⏱️ **Auto-Refresh calé sur le pas quart-horaire :** Synchronisation automatique toutes les 15 minutes (`900 000 ms`), reflétant la fréquence réelle de transmission des télémesures RTE.
+- 🏷️ **Libellé dynamique de la Puissance Appelée :** Affichage transparent du point temporel physique précis (`Relevé de 23h45`), distinguant clairement le dernier relevé physique, le pic journalier et les projections.
+- 🎯 **Métriques d'erreur journalières dynamiques à la volée :** Calcul en temps réel du $WAPE$ et du $MAE$ pour le modèle IA Chronos-Bolt et la Baseline J-1 sur n'importe quel jour d'archive consulté dans le calendrier.
+- 📈 **Master timeline multi-courbes :** Superposition de la consommation réelle observée, des prévisions IA avec fuseau d'incertitude 80% ($q_{10} - q_{90}$), de la baseline saisonnière et des prévisions officielles RTE J et J-1.
 
 #### Mode A — Production Unifié (Recommandé) :
 Le serveur FastAPI distribue directement l'application React compilée :
 ```bash
-# 1. Compiler le Front-End React (si modifications)
-cd frontend && npm run build && cd ..
+# 1. Compiler le Front-End React
+cd frontend && npm install && npm run build && cd ..
 
 # 2. Lancer le serveur unifié (API + React)
-uv run uvicorn rte_energy.api.app:app --host 127.0.0.1 --port 8000 --reload
+uv run uvicorn rte_energy.api.app:app --host 127.0.0.1 --port 8000
 ```
 *Accédez à l'application sur : [http://localhost:8000](http://localhost:8000).*
 

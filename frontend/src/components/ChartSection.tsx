@@ -391,6 +391,52 @@ export const ChartSection: React.FC<ChartSectionProps> = ({
 
   const formattedDate = selectedDate.split("-").reverse().join("/");
 
+  // Calcul dynamique de la précision des modèles sur la journée sélectionnée
+  const dayMetrics = React.useMemo(() => {
+    if (isLiveMode || !history.length || !forecasts?.chronos?.length) return null;
+
+    let chronosAbsErr = 0;
+    let baseAbsErr = 0;
+    let totalReal = 0;
+    let count = 0;
+    let baseCount = 0;
+
+    const chronosMap = new Map<string, number>();
+    forecasts.chronos.forEach(c => chronosMap.set(c.time_label, c.forecast_mw));
+
+    const baseMap = new Map<string, number>();
+    forecasts.baseline_j1?.forEach(b => baseMap.set(b.time_label, b.value_mw));
+
+    history.forEach(pt => {
+      const real = pt.value_mw;
+      totalReal += real;
+
+      const cVal = chronosMap.get(pt.time_label);
+      if (cVal !== undefined) {
+        chronosAbsErr += Math.abs(real - cVal);
+        count++;
+      }
+
+      const bVal = baseMap.get(pt.time_label);
+      if (bVal !== undefined) {
+        baseAbsErr += Math.abs(real - bVal);
+        baseCount++;
+      }
+    });
+
+    if (totalReal === 0 || count === 0) return null;
+
+    const chronosWape = (chronosAbsErr / totalReal) * 100;
+    const chronosMae = chronosAbsErr / count;
+    const baseWape = baseCount > 0 ? (baseAbsErr / totalReal) * 100 : null;
+
+    return {
+      chronosWape: chronosWape.toFixed(1),
+      chronosMae: Math.round(chronosMae),
+      baseWape: baseWape ? baseWape.toFixed(1) : null
+    };
+  }, [isLiveMode, history, forecasts]);
+
   return (
     <section className="chart-section" aria-label="Graphique chronologique de consommation">
       {/* Barre d'outils avec Calendrier et Sélecteur de date */}
@@ -477,11 +523,27 @@ export const ChartSection: React.FC<ChartSectionProps> = ({
             )}
           </>
         ) : (
-          <div className="legend-chip chip-historical">
-            <span className="chip-dot dot-real"></span>
-            <span>
-              <strong>Journée du {formattedDate} :</strong> Comparaison directe de la consommation réelle face aux prévisions (Chronos-Bolt IA, RTE J-1, Baseline Naïve).
-            </span>
+          <div className="legend-historical-wrapper">
+            <div className="legend-chip chip-historical">
+              <span className="chip-dot dot-real"></span>
+              <span>
+                <strong>Journée du {formattedDate} :</strong>
+              </span>
+            </div>
+            {dayMetrics && (
+              <div className="daily-accuracy-badges">
+                <span className="accuracy-badge badge-chronos" title="Erreur relative de Chronos-Bolt sur cette journée">
+                  <span className="dot-accuracy dot-chronos"></span>
+                  Chronos-Bolt IA : <strong>WAPE {dayMetrics.chronosWape}%</strong> (MAE {dayMetrics.chronosMae} MW)
+                </span>
+                {dayMetrics.baseWape && (
+                  <span className="accuracy-badge badge-baseline" title="Erreur de la Baseline Naïve sur cette journée">
+                    <span className="dot-accuracy dot-baseline"></span>
+                    Baseline J-1 : <strong>WAPE {dayMetrics.baseWape}%</strong>
+                  </span>
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>

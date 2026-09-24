@@ -75,16 +75,16 @@ export function App() {
   useEffect(() => {
     loadDataForDate("2026-09-23", true);
 
-    // Rafraîchissement automatique toutes les 60 secondes en direct
+    // Rafraîchissement automatique toutes les 15 minutes en direct (aligné sur le cycle quart-horaire de RTE)
     const intervalId = setInterval(() => {
       setSelectedDate(current => {
         if (current === "2026-09-23") {
-          console.log("🔄 Auto-refresh des données en direct...");
+          console.log("🔄 Auto-refresh des données en direct (cycle 15 min)...");
           loadDataForDate("2026-09-23", false);
         }
         return current;
       });
-    }, 60000);
+    }, 15 * 60 * 1000); // 15 minutes (900 000 ms)
 
     return () => clearInterval(intervalId);
   }, [loadDataForDate]);

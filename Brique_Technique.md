@@ -53,13 +53,13 @@ Ce document détaille chaque **brique technique** du projet **RTE Energy Pipelin
 
 ### 📁 5. Sous-Package `api/` & Application `frontend/` (Restitution Web React éCO2mix)
 - **`src/rte_energy/api/app.py` :** API REST haute performance (FastAPI) exposant les endpoints `/api/status`, `/api/kpi`, `/api/consumption/history`, `/api/consumption/forecasts` et `/api/benchmark`, et servant le bundle React compilé (`frontend/dist`).
-- **`frontend/src/App.tsx` :** Composant racine orchestrant les appels REST asynchrones, le filtrage temporel (24h/48h/7j) et l'auto-refresh toutes les 60 secondes.
+- **`frontend/src/App.tsx` :** Composant racine orchestrant les appels REST asynchrones, la sélection de dates d'archives, et l'auto-refresh calé sur le pas de 15 minutes (`900 000 ms`).
 - **`frontend/src/components/Header.tsx` :** En-tête éCO2mix avec voyant vert live clignotant, horodatage de synchronisation et bouton d'actualisation.
-- **`frontend/src/components/KpiGrid.tsx` & `KpiCard.tsx` :** Cartes de synthèse temps réel (Puissance appelée, Pic, Creux, Météo/Thermosensibilité).
-- **`frontend/src/components/ChartSection.tsx` :** Master timeline Chart.js reliant la consommation réelle et les prévisions avec intervalle de confiance 80% et filtres de séries.
+- **`frontend/src/components/KpiGrid.tsx` & `KpiCard.tsx` :** Cartes de synthèse temps réel dont la carte principale "Puissance Appelée" affiche dynamiquement le point physique horodaté précis (`Relevé de 23h45`).
+- **`frontend/src/components/ChartSection.tsx` :** Master timeline Chart.js reliant la consommation réelle et les prévisions (80% d'intervalle de confiance, filtres de séries) et **calcul dynamique à la volée des métriques d'erreur ($WAPE$ et $MAE$)** pour la journée sélectionnée.
 - **`frontend/src/components/ThermosensitivityCard.tsx` :** Encadré pédagogique éCO2mix sur l'impact de la thermosensibilité (~2 400 MW/°C sous 15°C).
 - **`frontend/src/components/BenchmarkTable.tsx` :** Tableau comparatif officiel de précision des modèles (MAE, WAPE, badges).
-- **`frontend/src/index.css` :** Design System complet Vanilla CSS en Dark Mode Technologique (bleu électrique `#0072ce`, cyan `#00b4d8`, néon, glassmorphism, responsive).
+- **`frontend/src/index.css` :** Design System complet Vanilla CSS en Dark Mode Technologique (bleu électrique `#0072ce`, cyan `#00f0ff`, ambre `#ff9f1c`, vert `#10b981`, néon, glassmorphism, responsive).
 
 ---
 

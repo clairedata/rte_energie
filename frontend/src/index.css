@@ -599,6 +599,52 @@ body {
   border-radius: 50%;
 }
 
+.legend-historical-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.daily-accuracy-badges {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.accuracy-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  font-size: 11.5px;
+  font-weight: 500;
+}
+
+.accuracy-badge strong {
+  font-weight: 700;
+}
+
+.badge-chronos {
+  background: rgba(255, 159, 28, 0.14);
+  border: 1px solid rgba(255, 159, 28, 0.4);
+  color: #fed7aa;
+}
+
+.badge-baseline {
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  color: #fca5a5;
+}
+
+.dot-accuracy {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+
 .series-toggles {
   display: flex;
   align-items: center;

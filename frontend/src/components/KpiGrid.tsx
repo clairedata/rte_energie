@@ -30,6 +30,16 @@ export const KpiGrid: React.FC<KpiGridProps> = ({ data }) => {
   const arrow = isUp ? "🔺" : isDown ? "🔻" : "➡️";
   const trendColor = isUp ? "text-accent-red" : isDown ? "text-accent-cyan" : "";
 
+  // Extraction de l'heure exacte du relevé (ex: "23h45")
+  let recordTime = "";
+  if (data.current_time) {
+    const match = data.current_time.match(/T(\d{2}):(\d{2})/);
+    if (match) {
+      recordTime = `${match[1]}h${match[2]}`;
+    }
+  }
+  const currentTag = recordTime ? `Relevé de ${recordTime}` : (data.selected_date ? `Jour ${data.selected_date}` : "En direct");
+
   return (
     <section className="kpi-grid" aria-label="Indicateurs clés de consommation">
       {/* 1. Puissance Appelée */}
@@ -38,7 +48,7 @@ export const KpiGrid: React.FC<KpiGridProps> = ({ data }) => {
         isPrimary={true}
         icon={<Zap size={18} />}
         title="Puissance Appelée"
-        tag={data.selected_date ? `Jour ${data.selected_date}` : "En direct"}
+        tag={currentTag}
         value={frNum.format(Math.round(data.current_consumption_mw))}
         unit="MW"
         subContent={
