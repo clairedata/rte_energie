@@ -8,17 +8,23 @@ authors = [
 ]
 requires-python = ">=3.13"
 dependencies = [
+    "bcrypt>=5.0.0",
     "chronos-forecasting>=2.3.1",
     "dbt-postgres>=1.11.0",
     "dotenv>=0.9.9",
+    "email-validator>=2.3.0",
+    "fastapi>=0.141.1",
     "lightgbm>=4.7.0",
     "matplotlib>=3.11.1",
     "numpy>=2.5.3",
     "pandas>=3.0.5",
     "psycopg2-binary>=2.9.12",
+    "pyjwt>=2.15.0",
     "python-dotenv>=1.2.3",
+    "python-multipart>=0.0.32",
     "requests>=2.34.2",
     "scikit-learn>=1.9.1",
+    "uvicorn>=0.53.0",
 ]
 
 [project.scripts]

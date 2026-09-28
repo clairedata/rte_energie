@@ -1,12 +1,21 @@
 """
 ================================================================================
   MODULE : db/init_schema.py
-  OBJECTIF : Création et vérification du schéma PostgreSQL (tables et contraintes).
+  OBJECTIF : Création et vérification du schéma PostgreSQL (tables et contraintes)
+             incluant la table d'authentification RBAC et les utilisateurs initiaux.
 ================================================================================
 """
 
 import sys
+from pathlib import Path
+
+# Ajout du dossier src au chemin d'importation Python
+SRC_DIR = Path(__file__).resolve().parents[2] / "src"
+if str(SRC_DIR) not in sys.path:
+    sys.path.insert(0, str(SRC_DIR))
+
 from rte_energy.config import get_db_connection
+from rte_energy.auth.security import hash_password
 
 if sys.platform == "win32":
     try:
@@ -18,10 +27,11 @@ if sys.platform == "win32":
 
 def init_db() -> None:
     """
-    Initialise les 3 tables fondamentales de l'application dans PostgreSQL :
+    Initialise les 4 tables fondamentales de l'application dans PostgreSQL :
     1. consumption_forecast : Données brutes RTE (consommation & production)
     2. weather : Relevés météo Open-Meteo
     3. model_forecasts : Prévisions générées par les modèles d'IA
+    4. users : Comptes utilisateurs et rôles pour l'authentification JWT / RBAC
     """
     conn = get_db_connection()
     cur = conn.cursor()
@@ -66,15 +76,81 @@ def init_db() -> None:
         );
     """)
 
+    # 4. Table des utilisateurs & rôles (RBAC) pour l'authentification JWT
+    # ==============================================================================
+    # EXPLICATION DU SCHÉMA JWT / RBAC :
+    # - email : Identifiant unique utilisé pour le login et comme claim 'sub' dans le JWT.
+    # - hashed_password : Hash cryptographique bcrypt (le mot de passe en clair n'est JAMAIS stocké).
+    # - role : Rôle RBAC ('viewer', 'analyst', 'admin') injecté dans le payload du JWT.
+    # - is_active : Permet de désactiver un compte immédiatement sans supprimer l'historique.
+    # ==============================================================================
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id SERIAL PRIMARY KEY,
+            email VARCHAR(255) UNIQUE NOT NULL,
+            hashed_password VARCHAR(255) NOT NULL,
+            full_name VARCHAR(100),
+            role VARCHAR(50) DEFAULT 'viewer' CHECK (role IN ('viewer', 'analyst', 'admin')),
+            is_active BOOLEAN DEFAULT TRUE,
+            created_at TIMESTAMPTZ DEFAULT NOW()
+        );
+    """)
+
     conn.commit()
     cur.close()
     conn.close()
-    print("✅ Schéma initialisé avec succès dans PostgreSQL (consumption_forecast, weather, model_forecasts) !")
+    print("✅ Schéma initialisé avec succès dans PostgreSQL (consumption_forecast, weather, model_forecasts, users) !")
+
+
+def seed_default_users() -> None:
+    """
+    Crée les comptes de démonstration pour chaque rôle RBAC s'ils n'existent pas encore :
+    - Administrateur (admin@rte.fr / RteAdmin2026!)
+    - Analyste Data (analyst@rte.fr / RteAnalyst2026!)
+    - Observateur (viewer@rte.fr / RteViewer2026!)
+    """
+    conn = get_db_connection()
+    cur = conn.cursor()
+
+    default_users = [
+        {
+            "email": "admin@rte.fr",
+            "password": "RteAdmin2026!",
+            "full_name": "Administrateur Système",
+            "role": "admin"
+        },
+        {
+            "email": "analyst@rte.fr",
+            "password": "RteAnalyst2026!",
+            "full_name": "Data Scientist RTE",
+            "role": "analyst"
+        },
+        {
+            "email": "viewer@rte.fr",
+            "password": "RteViewer2026!",
+            "full_name": "Consultant Énergie",
+            "role": "viewer"
+        }
+    ]
+
+    for u in default_users:
+        cur.execute("SELECT id FROM users WHERE email = %s;", (u["email"],))
+        if not cur.fetchone():
+            hashed = hash_password(u["password"])
+            cur.execute("""
+                INSERT INTO users (email, hashed_password, full_name, role, is_active)
+                VALUES (%s, %s, %s, %s, TRUE);
+            """, (u["email"], hashed, u["full_name"], u["role"]))
+            print(f"  👤 Utilisateur initial créé : {u['email']} [{u['role']}]")
+
+    conn.commit()
+    cur.close()
+    conn.close()
 
 
 def verify_database() -> None:
     """
-    Affiche un état des lieux de la volumétrie et des plages temporelles en base.
+    Affiche un état des lieux de la volumétrie, des plages temporelles et des utilisateurs en base.
     """
     conn = get_db_connection()
     cur = conn.cursor()
@@ -93,6 +169,9 @@ def verify_database() -> None:
     cur.execute("SELECT COUNT(*) FROM model_forecasts;")
     nb_forecasts = cur.fetchone()[0]
 
+    cur.execute("SELECT COUNT(*) FROM users;")
+    nb_users = cur.fetchone()[0]
+
     cur.close()
     conn.close()
 
@@ -103,9 +182,11 @@ def verify_database() -> None:
     print(f"  • Plage temporelle consommation                : du {min_d} au {max_d}")
     print(f"  • Relevés météorologiques (Open-Meteo)         : {nb_weather:,} heures")
     print(f"  • Prévisions d'IA enregistrées                 : {nb_forecasts:,} points")
+    print(f"  • Utilisateurs enregistrés (RBAC)             : {nb_users} comptes")
     print("=" * 80 + "\n")
 
 
 if __name__ == "__main__":
     init_db()
+    seed_default_users()
     verify_database()

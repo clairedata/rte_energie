@@ -55,7 +55,7 @@ def ingest_rte(start_date: Optional[str] = None, end_date: Optional[str] = None)
     params = {"start_date": start_date, "end_date": end_date}
 
     print(f"📡 Interrogation de l'API RTE ({start_date} -> {end_date})...")
-    resp = requests.get(url, headers=headers, params=params, timeout=30)
+    resp = requests.get(url, headers=headers, params=params, timeout=60)
     resp.raise_for_status()
     data = resp.json()
 

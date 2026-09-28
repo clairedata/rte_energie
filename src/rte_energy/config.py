@@ -35,6 +35,7 @@ LOGS_DIR = BASE_DIR / "logs"
 MODELS_DIR = BASE_DIR / "models"
 DBT_DIR = BASE_DIR / "dbt_energy"
 SRC_DIR = BASE_DIR / "src"
+FRONTEND_DIR = BASE_DIR / "frontend"
 
 # Modèles spécifiques
 CHRONOS_MODEL_DIR = MODELS_DIR / "chronos-bolt-rte"
@@ -63,11 +64,11 @@ WEATHER_LON = float(os.getenv("WEATHER_LON", "1.888334"))
 
 # Paramètres de connexion PostgreSQL
 DB_CONFIG: Dict[str, Any] = {
-    "host": os.getenv("DB_HOST", "localhost"),
+    "host": os.getenv("DB_HOST", "127.0.0.1"),
     "port": int(os.getenv("DB_PORT", "5432")),
     "dbname": os.getenv("DB_NAME", "energy_db"),
     "user": os.getenv("DB_USER", "postgres"),
-    "password": os.getenv("DB_PASSWORD")
+    "password": os.getenv("DB_PASSWORD", "@066936852@Pp")
 }
 
 

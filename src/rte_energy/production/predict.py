@@ -66,7 +66,7 @@ def load_recent_history(context_points: int = CONTEXT_LENGTH) -> pd.DataFrame:
     if df.empty:
         raise RuntimeError("Aucune donnée historique de consommation trouvée dans PostgreSQL.")
 
-    df["start_date"] = pd.to_datetime(df["start_date"])
+    df["start_date"] = pd.to_datetime(df["start_date"], utc=True)
     df.sort_values("start_date", inplace=True)
     df.set_index("start_date", inplace=True)
     return df
