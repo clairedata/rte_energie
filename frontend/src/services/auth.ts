@@ -7,6 +7,7 @@
  */
 
 import type { LoginResponse, User, UserRole } from "../types/auth";
+import { API_BASE_URL } from "../config";
 
 const TOKEN_STORAGE_KEY = "rte_energy_jwt_token";
 const USER_STORAGE_KEY = "rte_energy_user_profile";
@@ -78,7 +79,7 @@ export function getAuthHeaders(): HeadersInit {
  * Appel API de connexion.
  */
 export async function loginApi(email: string, password: string): Promise<LoginResponse> {
-    const response = await fetch("/api/auth/login", {
+    const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password })
@@ -96,7 +97,7 @@ export async function loginApi(email: string, password: string): Promise<LoginRe
  * Appel API d'inscription (compte créé inactif en attente d'approbation admin).
  */
 export async function registerApi(email: string, password: string, fullName?: string, role: UserRole = "viewer"): Promise<{ user: User; message: string }> {
-    const response = await fetch("/api/auth/register", {
+    const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -119,7 +120,7 @@ export async function registerApi(email: string, password: string, fullName?: st
  * Récupère les informations actualisées de l'utilisateur connecté via /api/auth/me.
  */
 export async function getMeApi(token: string): Promise<User> {
-    const response = await fetch("/api/auth/me", {
+    const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
         headers: {
             "Authorization": `Bearer ${token}`
         }
@@ -136,7 +137,7 @@ export async function getMeApi(token: string): Promise<User> {
  * [ADMIN] Met à jour le statut actif/inactif d'un utilisateur (approbation) ou son rôle.
  */
 export async function updateUserStatusApi(userId: number, isActive: boolean, role?: string): Promise<any> {
-    const response = await fetch(`/api/admin/users/${userId}/status`, {
+    const response = await fetch(`${API_BASE_URL}/api/admin/users/${userId}/status`, {
         method: "PUT",
         headers: getAuthHeaders(),
         body: JSON.stringify({
@@ -157,7 +158,7 @@ export async function updateUserStatusApi(userId: number, isActive: boolean, rol
  * [ADMIN] Déclenche une étape de pipeline (ingestion_rte, ingestion_weather, dbt_run, full_pipeline).
  */
 export async function triggerPipelineApi(type: string): Promise<any> {
-    const response = await fetch(`/api/admin/trigger-pipeline?pipeline_type=${type}`, {
+    const response = await fetch(`${API_BASE_URL}/api/admin/trigger-pipeline?pipeline_type=${type}`, {
         method: "POST",
         headers: getAuthHeaders()
     });
@@ -180,7 +181,7 @@ export async function downloadMetricsCsv(): Promise<void> {
         headers["Authorization"] = `Bearer ${token}`;
     }
 
-    const response = await fetch("/api/analyst/export-metrics-csv", { headers });
+    const response = await fetch(`${API_BASE_URL}/api/analyst/export-metrics-csv`, { headers });
     if (!response.ok) {
         const err = await response.json().catch(() => ({ detail: "Erreur de téléchargement" }));
         throw new Error(err.detail || `Erreur ${response.status}`);

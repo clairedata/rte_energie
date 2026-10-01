@@ -32,7 +32,7 @@ export const ChartSection: React.FC<ChartSectionProps> = ({
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const chartInstanceRef = useRef<Chart | null>(null);
 
-  const activeLatest = latestDate || "2026-09-30";
+  const activeLatest = latestDate || selectedDate || new Date().toISOString().slice(0, 10);
 
   // État local de la date saisie dans le calendrier avant clic sur "Appliquer"
   const [inputDate, setInputDate] = useState<string>(selectedDate || activeLatest);

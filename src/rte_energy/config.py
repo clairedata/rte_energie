@@ -25,7 +25,7 @@ if sys.platform == "win32":
 # ==============================================================================
 # 1. ARBORESCENCE & CHEMINS DU PROJET
 # ==============================================================================
-# BASE_DIR pointe toujours vers la racine absolue du projet (e:\Projects\QRA\rte_energie)
+# BASE_DIR pointe toujours vers la racine absolue du projet
 BASE_DIR = Path(__file__).resolve().parents[2]
 
 DOCS_DIR = BASE_DIR / "docs"
@@ -61,6 +61,9 @@ RTE_CLIENT_SECRET = os.getenv("RTE_CLIENT_SECRET")
 # Coordonnées géographiques Météo (France métropolitaine)
 WEATHER_LAT = float(os.getenv("WEATHER_LAT", "46.603354"))
 WEATHER_LON = float(os.getenv("WEATHER_LON", "1.888334"))
+
+# Durée maximale de rétention des données historiques en base (par défaut : 45 jours)
+DATA_RETENTION_DAYS = int(os.getenv("DATA_RETENTION_DAYS", "45"))
 
 # Paramètres de connexion PostgreSQL
 DB_CONFIG: Dict[str, Any] = {

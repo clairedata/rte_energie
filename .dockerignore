@@ -1,0 +1,64 @@
+# ==============================================================================
+# .dockerignore - EXCLUSION DES FICHIERS LOURDS & TEMPORAIRES POUR LE DÉPLOIEMENT
+# ==============================================================================
+
+# 1. Environnements virtuels Python locaux (1.2+ Go)
+.venv/
+venv/
+env/
+ENV/
+
+# 2. Dépendances Node.js du Frontend (130+ Mo)
+node_modules/
+frontend/node_modules/
+frontend/.oxlintrc.json
+
+# 3. Caches Python et Bytecode
+**/__pycache__/
+**/*.py[cod]
+**/*.pyo
+**/*.pyd
+.pytest_cache/
+.coverage
+
+# 4. Fichiers et dossiers Git
+.git/
+.github/
+.gitignore
+
+# 5. Modèles lourds entraînés localement (>100 Mo téléchargés au runtime si besoin)
+models/
+**/*.joblib
+**/*.pkl
+**/*.safetensors
+**/*.pt
+**/*.bin
+
+# 6. Dossiers de builds & caches dbt
+dbt_energy/target/
+dbt_energy/dbt_packages/
+dbt_energy/logs/
+
+# 7. Données brutes volumineuses et sauvegardes locales
+data/backups/
+data/raw/
+*.csv
+*.parquet
+*.sqlite
+*.sql
+
+# 8. Logs et rapports locaux
+logs/
+*.log
+reports/figures/*.png
+
+# 9. Fichiers d'environnement et secrets locaux (sécurité)
+.env
+.env.local
+.env.*.local
+
+# 10. Fichiers système et éditeurs
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

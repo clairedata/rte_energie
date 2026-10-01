@@ -9,6 +9,7 @@ import { LoginModal } from "./components/LoginModal";
 import { AdminPanel } from "./components/AdminPanel";
 import { useAuth } from "./context/AuthContext";
 import { getAuthHeaders } from "./services/auth";
+import { API_BASE_URL } from "./config";
 import type {
   KpiData,
   ConsumptionPoint,
@@ -22,8 +23,8 @@ export function App() {
   const [history, setHistory] = useState<ConsumptionPoint[]>([]);
   const [forecasts, setForecasts] = useState<ForecastsResponse | null>(null);
   const [benchmarkModels, setBenchmarkModels] = useState<BenchmarkModel[]>([]);
-  const [selectedDate, setSelectedDate] = useState<string>("2026-09-27");
-  const [latestAvailableDate, setLatestAvailableDate] = useState<string>("2026-09-27");
+  const [selectedDate, setSelectedDate] = useState<string>("");
+  const [latestAvailableDate, setLatestAvailableDate] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [lastSyncTime, setLastSyncTime] = useState<string | null>(null);
 
@@ -40,7 +41,7 @@ export function App() {
 
       // 1. Détecter dynamiquement la date la plus récente en base
       try {
-        const statusRes = await fetch("/api/status", { headers: getAuthHeaders() });
+        const statusRes = await fetch(`${API_BASE_URL}/api/status`, { headers: getAuthHeaders() });
         if (statusRes.ok) {
           const statusJson = await statusRes.json();
           if (statusJson.last_consumption_time) {
@@ -56,8 +57,10 @@ export function App() {
       }
 
       if (!targetDate) {
-        targetDate = latestAvailableDate || "2026-09-27";
+        targetDate = latestAvailableDate || new Date().toISOString().slice(0, 10);
       }
+
+      setSelectedDate(targetDate);
 
       // Calcul de la date du lendemain (Demain J+1 à prédire)
       const [y, m, d] = targetDate.split("-").map(Number);
@@ -65,15 +68,15 @@ export function App() {
       const tomorrowDate = nextDay.toISOString().slice(0, 10);
 
       // 2. URLs d'appels API : 48h d'historique réel jusqu'au jour J + prévisions à J+1 (demain)
-      const kpiUrl = `/api/kpi?date=${targetDate}`;
-      const histUrl = `/api/consumption/history?date=${targetDate}&hours=48`;
-      const fcstUrl = `/api/consumption/forecasts?date=${tomorrowDate}`;
+      const kpiUrl = `${API_BASE_URL}/api/kpi?date=${targetDate}`;
+      const histUrl = `${API_BASE_URL}/api/consumption/history?date=${targetDate}&hours=48`;
+      const fcstUrl = `${API_BASE_URL}/api/consumption/forecasts?date=${tomorrowDate}`;
 
       const [kpiRes, histRes, fcstRes, benchRes] = await Promise.all([
         fetch(kpiUrl, { headers: getAuthHeaders() }),
         fetch(histUrl, { headers: getAuthHeaders() }),
         fetch(fcstUrl, { headers: getAuthHeaders() }),
-        fetch("/api/benchmark", { headers: getAuthHeaders() })
+        fetch(`${API_BASE_URL}/api/benchmark`, { headers: getAuthHeaders() })
       ]);
 
       if (kpiRes.ok) {

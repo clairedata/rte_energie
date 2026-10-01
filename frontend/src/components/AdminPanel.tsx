@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from "../context/AuthContext";
 import { getAuthHeaders, updateUserStatusApi, triggerPipelineApi, downloadMetricsCsv } from "../services/auth";
+import { API_BASE_URL } from "../config";
 import { Shield, Play, Users, FileDown, Lock, CheckCircle, AlertTriangle, CloudSun, Zap, Database, Download, Check, XCircle, Loader2, Sparkles, CheckCircle2 } from "lucide-react";
 import { RoleBadge } from "./RoleBadge";
 
@@ -71,7 +72,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onPipelineSuccess }) => 
         setActionLoading("users");
         setActionError(null);
         try {
-            const res = await fetch("/api/admin/users", {
+            const res = await fetch(`${API_BASE_URL}/api/admin/users`, {
                 headers: getAuthHeaders()
             });
             if (!res.ok) {
@@ -199,7 +200,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onPipelineSuccess }) => 
         setActionLoading("metrics-view");
         setActionError(null);
         try {
-            const res = await fetch("/api/analyst/export-metrics", {
+            const res = await fetch(`${API_BASE_URL}/api/analyst/export-metrics`, {
                 headers: getAuthHeaders()
             });
             if (!res.ok) {

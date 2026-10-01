@@ -40,12 +40,13 @@ def get_token() -> str:
 
 def ingest_rte(start_date: Optional[str] = None, end_date: Optional[str] = None) -> int:
     """
-    Interroge l'API RTE France pour la plage demandée (par défaut J à J+2)
+    Interroge l'API RTE France pour la plage demandée (par défaut J-2 à J+2)
     et effectue un upsert dans la table PostgreSQL 'consumption_forecast'.
     """
     if not start_date or not end_date:
         now = datetime.now().astimezone().replace(hour=0, minute=0, second=0, microsecond=0)
-        start_date = now.isoformat()
+        # On ingère de J-2 à J+2 afin de consolider le réalisé D-1 et les prévisions futures J+1/J+2
+        start_date = (now - timedelta(days=2)).isoformat()
         end_date = (now + timedelta(days=2)).isoformat()
 
     print(f"🔑 Récupération du jeton OAuth2 RTE...")

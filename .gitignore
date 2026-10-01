@@ -1,36 +1,57 @@
-# Environnements virtuels
+# ==============================================================================
+# .gitignore - EXCLUSION DES FICHIERS VOLUMINEUX & FICHIERS TEMPORAIRES
+# ==============================================================================
+
+# 1. Environnements virtuels Python (1.2+ Go)
 .venv/
 venv/
 env/
 ENV/
 
-# Caches Python
+# 2. Dépendances & Builds Frontend Node.js (130+ Mo)
+node_modules/
+frontend/node_modules/
+frontend/dist/
+frontend/dist-ssr/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# 3. Caches Python et Bytecode
 __pycache__/
+**/__pycache__/
 *.py[cod]
 *$py.class
+*.so
 
-# Données temporaires, sauvegardes volumineuses et modèles (>100MB rejetés par GitHub)
+# 4. Données temporaires, sauvegardes volumineuses et modèles ML (>100MB)
 data/backups/
+data/raw/
 *.sql
 *.joblib
 *.pkl
 *.safetensors
+*.pt
+*.bin
 models/
 
-# Fichiers journaux (logs)
+# 5. Fichiers journaux (logs)
 logs/
 *.log
 
-# Sorties de compilation dbt
+# 6. Sorties de compilation dbt Core
 dbt_energy/target/
 dbt_energy/dbt_packages/
 dbt_energy/logs/
 
-# Variables d'environnement locales
+# 7. Variables d'environnement locales & secrets
 .env
+.env.local
+.env.*.local
 
-# Fichiers système et IDE
+# 8. Fichiers système et IDE
 .DS_Store
 Thumbs.db
 .vscode/
 .idea/
+*.swp

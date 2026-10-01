@@ -84,8 +84,8 @@ def get_system_status() -> Dict[str, Any]:
         cur.execute("SELECT COUNT(*) AS n FROM public.weather;")
         counts["weather_records"] = cur.fetchone()["n"]
 
-        # Date de la dernière mesure réelle disponible observée (Aujourd'hui = 2026-09-27)
-        cur.execute("SELECT (MAX(start_date) AT TIME ZONE 'Europe/Paris') AS max_date FROM analytics.fct_national_consumption WHERE (start_date AT TIME ZONE 'Europe/Paris') <= '2026-09-27 23:45:00';")
+        # Date de la dernière mesure réelle disponible observée en base
+        cur.execute("SELECT (MAX(start_date) AT TIME ZONE 'Europe/Paris') AS max_date FROM analytics.fct_national_consumption;")
         row = cur.fetchone()
         if row and row["max_date"]:
             last_update = row["max_date"].isoformat()
